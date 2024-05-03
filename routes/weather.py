@@ -17,7 +17,7 @@ def get_weather():
 
         # Retrieve API keys from environment variables
         LOCATIONIQ_API_KEY = os.getenv('LOCATIONIQ_API_KEY')
-        WEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
+        OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 
         # Call LocationIQ API to get latitude and longitude
         locationiq_url = f"https://us1.locationiq.com/v1/search.php?key={LOCATIONIQ_API_KEY}&q={city}&format=json"
@@ -31,7 +31,7 @@ def get_weather():
         lon = locationiq_data[0]['lon']
 
         # Call OpenWeather API to get weather data using latitude and longitude
-        openweather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric"
+        openweather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric"
         logging.debug(f"Calling OpenWeather API with URL: {openweather_url}")
         openweather_response = requests.get(openweather_url)
         openweather_response.raise_for_status()
@@ -41,9 +41,6 @@ def get_weather():
         temperature = openweather_data['main']['temp']
 
         return jsonify({'temperature': temperature})
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to retrieve data from external API: {e}")
-        return jsonify({'error': 'Failed to retrieve data from external API'}), 500
     except Exception as e:
         logging.error(f"Internal server error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
