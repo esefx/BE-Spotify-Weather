@@ -29,6 +29,9 @@ def get_weather():
         # Extract latitude and longitude 
         lat = locationiq_data[0]['lat']
         lon = locationiq_data[0]['lon']
+        location_name = locationiq_data[0]['display_name']
+        name_list = location_name.split()
+        country = name_list[-1]
 
         # Call OpenWeather API to get weather data using latitude and longitude
         openweather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric"
@@ -40,7 +43,7 @@ def get_weather():
         # Extract temperature from OpenWeather response
         temperature = openweather_data['main']['temp']
 
-        return jsonify({'temperature': temperature})
+        return jsonify({'temperature': temperature, 'country': country})
     except Exception as e:
         logging.error(f"Internal server error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
