@@ -59,7 +59,7 @@ def callback():
         session['refresh_token'] = token_info['refresh_token']
         session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
 
-        return redirect('/playlists')
+        return redirect('/search')
     else:
         return jsonify({"error": "No code provided"})
 #helper function, check if we have a token, need to refresh or need to login    
@@ -70,45 +70,82 @@ def get_access_token():
         return redirect ('/refresh-token')
     return session['access_token']
 
+@spotify_routes.route('/refresh-token', methods=['GET'])
+def refresh_token():
+    if 'refresh_token' not in session:
+        return redirect('/login')
+
+    if datetime.datetime.now().timestamp() > session['expires_at']:
+        req_body = {
+            'grant_type': 'refresh_token',
+            'refresh_token': session['refresh_token'],
+            'client_id': SPOTIFY_CLIENT_ID,
+            'client_secret': SPOTIFY_CLIENT_SECRET
+        }
+
+        response = requests.post(TOKEN_URL, data=req_body)
+        new_token_info = response.json()
+
+        session['access_token'] = new_token_info['access_token']
+        session['expires_at'] = datetime.datetime.now().timestamp() + new_token_info['expires_in']
+
+        return redirect('/search')
+
 @spotify_routes.route('/search', methods=['GET'])
 def get_top_50_playlist():
     country = request.args.get('country')
     if not country:
         return jsonify({"error": "Country parameter is missing"}), 400
 
-    if 'access_token' not in session:
-        return redirect('/login')
+    access_token = get_access_token()
+    if isinstance(access_token, str): 
+        headers = {'Authorization': f'Bearer {access_token}'}
+        params = {'q': f'top 50 {country}', 'type': 'playlist', 'limit': 1}
+        response = requests.get(API_BASE_URL + 'search', headers=headers, params=params)
 
-    if datetime.datetime.now().timestamp() > session['expires_at']:
-        return redirect('/refresh-token')
+        if response.status_code != 200:
+            return jsonify({'error': 'Failed to fetch top 50 playlist form spotify'}), response.status_code
+        
+        data = response.json()
+        if not data['playlists']['items']: 
+            return jsonify({'error': 'No playlist found'}), 404
+        
+        playlist_id = data['playlists']['items'][0]['id']
+        session['playlist_id'] = playlist_id
 
-    access_token = session['access_token']
+        return get_playlist_tracks(playlist_id)
+    else:
+        return access_token
 
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
+def get_playlist_tracks(playlist_id):
+    access_token = get_access_token()
+    if isinstance(access_token, str):  # Check if we received a valid access token
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
 
-    params = {
-        'q': f'top 50 {country}',
-        'type': 'playlist',
-        'limit': 1
-    }
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
 
-    response = requests.get(API_BASE_URL + 'search', headers=headers, params=params)
-    
-    if response.status_code != 200:
-        return jsonify({"error": "Failed to fetch playlists from Spotify"}), response.status_code
+        data = response.json()
+        track_ids = [item['track']['id'] for item in data['items']]
+        return get_audio_features(track_ids)
+    else:
+        return access_token  # Return the redirect response
 
-    data = response.json()
-    if not data['playlists']['items']:
-        return jsonify({"error": "No playlist found"}), 404
+def get_audio_features(track_ids):
+    access_token = get_access_token()
+    if isinstance(access_token, str):  # Check if we received a valid access token
+        headers = {'Authorization': f'Bearer {access_token}'}
+        params = {'ids': ','.join(track_ids)}
+        response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
 
-    playlist_id = data['playlists']['items'][0]['id']
-    
-    # You can save the playlist ID in session or database as needed
-    session['playlist_id'] = playlist_id
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch audio features from Spotify"}), response.status_code
 
-    return jsonify({"playlist_id": playlist_id})
+        audio_features = response.json()
+        return jsonify(audio_features)
+    else:
+        return access_token  # Return the redirect response
 
 
 @spotify_routes.route('/playlists', methods=['GET'])
@@ -130,25 +167,4 @@ def get_playlists():
 
     return jsonify(playlists)
 
-
-@spotify_routes.route('/refresh-token', methods=['GET'])
-def refresh_token():
-    if 'refresh_token' not in session:
-        return redirect('/login')
-
-    if datetime.datetime.now().timestamp() > session['expires_at']:
-        req_body = {
-            'grant_type': 'refresh_token',
-            'refresh_token': session['refresh_token'],
-            'client_id': SPOTIFY_CLIENT_ID,
-            'client_secret': SPOTIFY_CLIENT_SECRET
-        }
-
-        response = requests.post(TOKEN_URL, data=req_body)
-        new_token_info = response.json()
-
-        session['access_token'] = new_token_info['access_token']
-        session['expires_at'] = datetime.datetime.now().timestamp() + new_token_info['expires_in']
-
-        return redirect('/playlists')
 
