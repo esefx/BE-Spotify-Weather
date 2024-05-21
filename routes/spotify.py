@@ -54,7 +54,7 @@ def callback():
         session['refresh_token'] = token_info['refresh_token']
         session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
 
-        return redirect(url_for('weather_routes.weather_form'))
+        return redirect(url_for('weather_routes.weather'))
     else:
         return jsonify({"error": "No code provided"})
 
