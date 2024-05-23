@@ -31,17 +31,18 @@ def login():
         'show_dialog': True
     }
     auth_url = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
-    return redirect(auth_url)
+    return jsonify({'auth_url': auth_url})
 
 # Handle if login is successful or not
-@spotify_routes.route('/callback', methods=['GET'])
+@spotify_routes.route('/callback', methods=['POST'])
 def callback():
-    if 'error' in request.args:
-        return jsonify({"error": request.args['error']})
+    data = request.json
+    if 'error' in data:
+        return jsonify({"error": data['error']})
     
-    if 'code' in request.args:
+    if 'code' in data:
         req_body = {
-            'code': request.args['code'],
+            'code': data['code'],
             'grant_type': 'authorization_code',
             'redirect_uri': SPOTIFY_REDIRECT_URI,
             'client_id': SPOTIFY_CLIENT_ID,
@@ -50,14 +51,16 @@ def callback():
         response = requests.post(TOKEN_URL, data=req_body)
         token_info = response.json()
 
-        session['access_token'] = token_info['access_token']
-        session['refresh_token'] = token_info['refresh_token']
-        session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
-
-        return jsonify({"login_status": "successful"})
+        if 'access_token' in token_info:
+            session['access_token'] = token_info['access_token']
+            session['refresh_token'] = token_info['refresh_token']
+            session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
+            return jsonify({"login_status": "successful"})
+        else:
+            return jsonify({"error": token_info.get('error', 'Failed to retrieve access token')})
     else:
         return jsonify({"error": "No code provided"})
-
+    
 # Helper function to check token
 def get_access_token():
     if 'access_token' not in session:
@@ -65,6 +68,7 @@ def get_access_token():
     if datetime.datetime.now().timestamp() > session['expires_at']:
         return redirect(url_for('spotify_routes.refresh_token'))
     return session['access_token']
+
 #refresh token if our session expired
 @spotify_routes.route('/refresh-token', methods=['GET'])
 def refresh_token():
@@ -83,7 +87,7 @@ def refresh_token():
     session['access_token'] = new_token_info['access_token']
     session['expires_at'] = datetime.datetime.now().timestamp() + new_token_info['expires_in']
 
-    return redirect(url_for('weather_routes.weather_form'))
+    return redirect(url_for('weather_routes'))
 #search for the top 50 playlist and return the song qualities of that list. 
 @spotify_routes.route('/search', methods=['GET'])
 def get_top_50_playlist():
@@ -107,36 +111,38 @@ def get_top_50_playlist():
         playlist_id = data['playlists']['items'][0]['id']
         session['playlist_id'] = playlist_id
 
-        return get_playlist_tracks(playlist_id)
+        # return get_playlist_tracks(playlist_id)
+        return jsonify({"playlist_id": playlist_id})
     else:
-        return access_token
+        return jsonify({"error":"failed to fetch top 50 playlist"})
 
-def get_playlist_tracks(playlist_id):
-    access_token = get_access_token()
-    if isinstance(access_token, str):  
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
+# def get_playlist_tracks(playlist_id):
+#     access_token = get_access_token()
+#     if isinstance(access_token, str):  
+#         headers = {'Authorization': f'Bearer {access_token}'}
+#         response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
 
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
+#         if response.status_code != 200:
+#             return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
 
-        data = response.json()
-        track_ids = [item['track']['id'] for item in data['items']]
-        return get_audio_features(track_ids)
-    else:
-        return access_token  # Return the redirect response
+#         data = response.json()
+#         track_ids = [item['track']['id'] for item in data['items']]
+#         return get_audio_features(track_ids)
+#     else:
+#         return jsonify({"error":"failed to top 50 tracks ids"})
 
-def get_audio_features(track_ids):
-    access_token = get_access_token()
-    if isinstance(access_token, str):  # Check if we received a valid access token
-        headers = {'Authorization': f'Bearer {access_token}'}
-        params = {'ids': ','.join(track_ids)}
-        response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
+# def get_audio_features(track_ids):
+#     access_token = get_access_token()
+#     if isinstance(access_token, str):  # Check if we received a valid access token
+#         headers = {'Authorization': f'Bearer {access_token}'}
+#         params = {'ids': ','.join(track_ids)}
+#         response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
 
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch audio features from Spotify"}), response.status_code
+#         if response.status_code != 200:
+#             return jsonify({"error": "Failed to fetch audio features from Spotify"}), response.status_code
 
-        audio_features = response.json()
-        return jsonify(audio_features)
-    else:
-        return access_token  # Return the redirect response
+#         audio_features = response.json()
+#         # return jsonify(audio_features)
+#         return jsonify({"audio_features": audio_features})
+#     else:
+#         return jsonify({"error":"failed to fetch audito features"})
