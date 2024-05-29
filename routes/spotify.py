@@ -55,7 +55,7 @@ def callback():
             session['access_token'] = token_info['access_token']
             session['refresh_token'] = token_info['refresh_token']
             session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
-            return jsonify({"login_status": "successful"})
+            return jsonify({"login_status": "successful", "access_token": token_info["access_token"]})
         else:
             return jsonify({"error": token_info.get('error', 'Failed to retrieve access token')})
     else:
