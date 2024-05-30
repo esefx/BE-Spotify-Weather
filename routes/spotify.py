@@ -5,7 +5,7 @@ import urllib.parse
 import datetime
 import requests
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # Spotify API endpoints
 AUTH_URL = 'https://accounts.spotify.com/authorize'
@@ -63,6 +63,12 @@ def callback():
     
 # Helper function to check token
 def get_access_token():
+    # First, try to get the access token from the headers
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        return auth_header.split(' ')[1]
+
+    # If the access token is not in the headers, fall back to the session
     if 'access_token' not in session:
         return redirect(url_for('spotify_routes.login'))
     if datetime.datetime.now().timestamp() > session['expires_at']:
@@ -91,58 +97,64 @@ def refresh_token():
 #search for the top 50 playlist and return the song qualities of that list. 
 @spotify_routes.route('/search', methods=['GET'])
 def get_top_50_playlist():
+    # Extract the access token from the headers
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        access_token = auth_header.split(' ')[1]
+    else:
+        return jsonify({"error": "No access token provided"}), 401
+
     country = request.args.get('country')
     if not country:
         return jsonify({"error": "Country parameter is missing"}), 400
 
-    access_token = get_access_token()
-    if isinstance(access_token, str): 
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {'q': f'top 50 {country}', 'type': 'playlist', 'limit': 1}
+    response = requests.get(API_BASE_URL + 'search', headers=headers, params=params)
+
+    if response.status_code != 200:
+        return jsonify({'error': 'Failed to fetch top 50 playlist from Spotify'}), response.status_code
+
+    data = response.json()
+    if not data['playlists']['items']: 
+        return jsonify({'error': 'No playlist found'}), 404
+
+    playlist_id = data['playlists']['items'][0]['id']
+    session['playlist_id'] = playlist_id
+
+    return get_playlist_tracks(playlist_id, access_token)
+
+def get_playlist_tracks(playlist_id, access_token):
+    logging.info(f'Access token: {access_token}')
+    if isinstance(access_token, str):  
         headers = {'Authorization': f'Bearer {access_token}'}
-        params = {'q': f'top 50 {country}', 'type': 'playlist', 'limit': 1}
-        response = requests.get(API_BASE_URL + 'search', headers=headers, params=params)
+        response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
+        logging.info(f'Spotify response: {response.status_code}, {response.text}')
 
         if response.status_code != 200:
-            return jsonify({'error': 'Failed to fetch top 50 playlist from Spotify'}), response.status_code
-        
+            return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
+
         data = response.json()
-        if not data['playlists']['items']: 
-            return jsonify({'error': 'No playlist found'}), 404
-        
-        playlist_id = data['playlists']['items'][0]['id']
-        session['playlist_id'] = playlist_id
-
-        # return get_playlist_tracks(playlist_id)
-        return jsonify({"playlist_id": playlist_id})
+        track_ids = [item['track']['id'] for item in data['items']]
+        logging.info(f'Track IDs: {track_ids}')
+        return get_audio_features(track_ids, access_token)
     else:
-        return jsonify({"error":"failed to fetch top 50 playlist"})
+        return jsonify({"error":"failed to top 50 tracks ids"})
 
-# def get_playlist_tracks(playlist_id):
-#     access_token = get_access_token()
-#     if isinstance(access_token, str):  
-#         headers = {'Authorization': f'Bearer {access_token}'}
-#         response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
+def get_audio_features(track_ids, access_token):
+    logging.info(f'Access token: {access_token}')
+    if isinstance(access_token, str):  
+        headers = {'Authorization': f'Bearer {access_token}'}
+        params = {'ids': ','.join(track_ids)}
+        response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
+        logging.info(f'Spotify response: {response.status_code}, {response.text}')
 
-#         if response.status_code != 200:
-#             return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch audio features from Spotify"}), response.status_code
 
-#         data = response.json()
-#         track_ids = [item['track']['id'] for item in data['items']]
-#         return get_audio_features(track_ids)
-#     else:
-#         return jsonify({"error":"failed to top 50 tracks ids"})
+        data = response.json()
+        logging.info(f'Audio features: {data}')
+        if 'audio_features' not in data:
+            return jsonify({"error": "Failed to extract audio features from Spotify response"})
 
-# def get_audio_features(track_ids):
-#     access_token = get_access_token()
-#     if isinstance(access_token, str):  # Check if we received a valid access token
-#         headers = {'Authorization': f'Bearer {access_token}'}
-#         params = {'ids': ','.join(track_ids)}
-#         response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
-
-#         if response.status_code != 200:
-#             return jsonify({"error": "Failed to fetch audio features from Spotify"}), response.status_code
-
-#         audio_features = response.json()
-#         # return jsonify(audio_features)
-#         return jsonify({"audio_features": audio_features})
-#     else:
-#         return jsonify({"error":"failed to fetch audito features"})
+        return jsonify(data['audio_features'])

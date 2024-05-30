@@ -7,11 +7,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 weather_routes = Blueprint('weather_routes', __name__)
 
-
 # Route to handle weather data retrieval
 @weather_routes.route('/weather', methods=['POST'])
 def get_weather():
     try:
+        # Extract the access token from the headers
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            access_token = auth_header.split(' ')[1]
+        else:
+            return jsonify({"error": "No access token provided"}), 401
+
         # Get city name from the request
         city = request.json.get('city')
         if not city or not isinstance(city, str):
@@ -46,7 +52,8 @@ def get_weather():
         temperature = openweather_data['main']['temp']
 
         # Fetch Spotify data based on the country
-        search_response = requests.get(f"http://127.0.0.1:5000/search?country={country}")
+        headers = {'Authorization': f'Bearer {access_token}'}
+        search_response = requests.get(f"http://127.0.0.1:5000/search?country={country}", headers=headers)
         if search_response.status_code != 200:
             return jsonify({"error": "Failed to fetch Spotify data"}), search_response.status_code
 
