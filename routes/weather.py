@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify, render_template, session
+from flask import Blueprint, request, jsonify
 import requests
 import os
 import logging
-from routes.spotify import create_playlist, add_tracks_to_playlist
+from models.sessions import Session
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -26,17 +26,20 @@ def filter_songs_by_weather(weather_data, song_qualities):
 @weather_routes.route('/weather', methods=['POST'])
 def get_weather():
     try:
-        logging.info(session)
-        #get user_id from session to use on create_playlist
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({"error": "User not authenticated"}), 401
-
+        # Get the access token from the request headers
         auth_header = request.headers.get('Authorization')
         if auth_header:
             access_token = auth_header.split(' ')[1]
         else:
-            return jsonify({"error": "No access token provided"}), 401
+            return jsonify({"error": "No access token provided", 'access token': access_token}), 401
+        
+        # Query the database for the session
+        user_session = Session.query.filter_by(access_token=access_token).first()
+        if not user_session:
+            return jsonify({"error": "User not authenticated", "user session": user_session}), 401
+
+        # Get the user_id from the session
+        user_id = user_session.user_id
 
         city = request.json.get('city')
         if not city or not isinstance(city, str):
@@ -79,14 +82,32 @@ def get_weather():
         playlist = filter_songs_by_weather(openweather_data, song_qualities)
 
         # Create a new Spotify playlist
-        playlist_info = create_playlist(user_id, playlist_name)
-        playlist_id = playlist_info['playlist_id']
+
+        response = requests.post(
+        'http://localhost:5000/create-playlist',
+        json={'playlist_name': playlist_name, 'access_token': access_token}
+        )
+
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to create playlist"}), response.status_code
+
+        playlist_id = response.json()['playlist_id']
 
 
         # Add tracks to the new Spotify playlist
         track_uris = [song['uri'] for song in playlist]
-        add_tracks_info = add_tracks_to_playlist(playlist_id, track_uris)
-        playlist_id = add_tracks_info['playlist_id']
+
+        # Make a POST request to the /add-tracks route
+        response = requests.post(
+            'http://localhost:5000/add-tracks',
+            json={'playlist_id': playlist_id, 'tracks': track_uris}
+        )
+
+        if response.status_code != 200:
+            logging.error(f"Failed to add tracks to playlist: {response.content}")
+            return jsonify({'error': 'Failed to add tracks to playlist'}), response.status_code
+
+        playlist_id = response.json()['playlist_id']
 
         return jsonify({'temperature': temperature, 'playlist': playlist_id})
     except Exception as e:

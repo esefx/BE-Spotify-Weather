@@ -4,6 +4,9 @@ import logging
 import urllib.parse
 import datetime
 import requests
+from app import db
+from sqlalchemy import text
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,7 +22,6 @@ SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
 SPOTIFY_SCOPES = os.getenv('SPOTIFY_SCOPES')
 
 spotify_routes = Blueprint('spotify_routes', __name__)
-
 # Handle login
 @spotify_routes.route('/login', methods=['GET'])
 def login():
@@ -52,15 +54,21 @@ def callback():
         token_info = response.json()
 
         if 'access_token' in token_info:
-            session['access_token'] = token_info['access_token']
-            session['refresh_token'] = token_info['refresh_token']
-            session['expires_at'] = datetime.datetime.now().timestamp() + token_info['expires_in']
+            access_token = token_info['access_token']
+            refresh_token = token_info['refresh_token']
+            expires_at = datetime.datetime.now().timestamp() + token_info['expires_in']
 
-             # Get the user ID
-            headers = {'Authorization': f'Bearer {session["access_token"]}'}
+            # Get the user ID
+            headers = {'Authorization': f'Bearer {access_token}'}
             response = requests.get(API_BASE_URL + 'me', headers=headers)
-            session['user_id'] = response.json()['id']
+            user_id = response.json()['id']
 
+            # Insert the session data into the sessions table
+            db.session.execute(
+                text("INSERT INTO sessions (user_id, access_token, refresh_token, expires_at) VALUES (:user_id, :access_token, :refresh_token, :expires_at)"),
+                params={"user_id": user_id, "access_token": access_token, "refresh_token": refresh_token, "expires_at": expires_at}
+            )
+            db.session.commit()
 
             return jsonify({"login_status": "successful", "access_token": token_info["access_token"]})
         else:
@@ -69,38 +77,63 @@ def callback():
         return jsonify({"error": "No code provided"})
     
 # Helper function to check token
-def get_access_token():
+def get_access_token(access_token):
     # First, try to get the access token from the headers
     auth_header = request.headers.get('Authorization')
     if auth_header:
         return auth_header.split(' ')[1]
 
-    # If the access token is not in the headers, fall back to the session
-    if 'access_token' not in session:
-        return redirect(url_for('spotify_routes.login'))
-    if datetime.datetime.now().timestamp() > session['expires_at']:
-        return redirect(url_for('spotify_routes.refresh_token'))
-    return session['access_token']
+    # If the access token is not in the headers, get it from the sessions table
+    result = db.session.execute(
+        text("SELECT access_token, expires_at FROM sessions WHERE access_token = :access_token"),
+        params={"access_token": access_token}
+    ).fetchone()
+    db.session.commit()
 
-#refresh token if our session expired
-@spotify_routes.route('/refresh-token', methods=['GET'])
-def refresh_token():
-    if 'refresh_token' not in session:
+    if result is None:
         return redirect(url_for('spotify_routes.login'))
+
+    access_token, expires_at = result
+    if datetime.datetime.now().timestamp() > expires_at:
+        return redirect(url_for('spotify_routes.refresh_token', access_token=access_token))
+
+    return access_token
+
+@spotify_routes.route('/refresh-token/<access_token>', methods=['GET'])
+def refresh_token(access_token):
+    # Look up the refresh token in the sessions table
+    result = db.session.execute(
+        text("SELECT refresh_token FROM sessions WHERE access_token = :access_token"),
+        access_token=access_token
+    ).fetchone()
+        
+    db.session.commit()
+
+    if result is None:
+        return jsonify({"error": "No session found for this user"}), 404
+
+    refresh_token = result[0]
 
     req_body = {
         'grant_type': 'refresh_token',
-        'refresh_token': session['refresh_token'],
+        'refresh_token': refresh_token,
         'client_id': SPOTIFY_CLIENT_ID,
         'client_secret': SPOTIFY_CLIENT_SECRET
     }
     response = requests.post(TOKEN_URL, data=req_body)
     new_token_info = response.json()
 
-    session['access_token'] = new_token_info['access_token']
-    session['expires_at'] = datetime.datetime.now().timestamp() + new_token_info['expires_in']
+    # Update the access token and expiration time in the sessions table
+    db.session.execute(
+    text("UPDATE sessions SET access_token = :new_access_token, expires_at = :expires_at WHERE access_token = :access_token"),
+    new_access_token=new_token_info['access_token'], expires_at=datetime.datetime.now().timestamp() + new_token_info['expires_in'], access_token=access_token
+    )
+    db.session.commit()
 
-    return redirect(url_for('weather_routes'))
+
+    return jsonify({"message": "Access token refreshed successfully"}), 200
+
+
 #search for the top 50 playlist and return the song qualities of that list. 
 @spotify_routes.route('/search', methods=['GET'])
 def get_top_50_playlist():
@@ -166,18 +199,28 @@ def get_audio_features(track_ids, access_token):
 
         return jsonify(data['audio_features'])
     
-    # Create a new Spotify playlist
+ # Create a new Spotify playlist
 @spotify_routes.route('/create-playlist', methods=['POST'])
 def create_playlist():
     data = request.json
-    user_id = data.get('user_id')
     playlist_name = data.get('playlist_name')
-    access_token = get_access_token()
+    access_token = data.get('access_token')
+
+    # Get the user_id from the sessions table
+    result = db.session.execute(
+        text("SELECT user_id FROM sessions WHERE access_token = :access_token"),
+        access_token=access_token
+    ).fetchone()
+
+    if result is None:
+        return jsonify({"error": "No session found for this user"}), 404
+
+    user_id = result[0]
 
     response = requests.post(
         f"{API_BASE_URL}users/{user_id}/playlists",
         headers={'Authorization': f'Bearer {access_token}'},
-        json={'name': playlist_name, 'description': 'Generated by WeatherTunes', 'public': False}
+        json={'name': playlist_name, 'description': 'Generated by WeatherTunes', 'public': True}
     )
     if response.status_code != 201:
         return jsonify({"error": "Failed to create playlist"}), response.status_code
@@ -191,7 +234,6 @@ def add_tracks_to_playlist():
     data = request.json
     playlist_id = data.get('playlist_id')
     track_uris = data.get('track_uris')
-    playlist_url = data.get('playlist_url')
     access_token = get_access_token()
 
     response = requests.post(
