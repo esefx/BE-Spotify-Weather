@@ -4,7 +4,8 @@ db = SQLAlchemy()
 
 class Session(db.Model):
     __tablename__ = 'sessions'
-    user_id = db.Column(db.String, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String)
     access_token = db.Column(db.String)
     refresh_token = db.Column(db.String)
     expires_at = db.Column(db.Float)
