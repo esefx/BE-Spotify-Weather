@@ -14,7 +14,7 @@ SPOTIFY_SCOPES = os.getenv('SPOTIFY_SCOPES')
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-def create_app():
+def create_app(env, start_response):
     # Initialize Flask app
     app = Flask(__name__)
     CORS(app)
