@@ -8,6 +8,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 weather_routes = Blueprint('weather_routes', __name__)
 
+ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
+# user_id = os.getenv('USER_ID')
+
 def filter_songs_by_weather(weather_data, song_qualities):
     temperature = weather_data['main']['temp']
     weather_condition = weather_data['weather'][0]['main']
@@ -26,17 +29,6 @@ def filter_songs_by_weather(weather_data, song_qualities):
 @weather_routes.route('/weather', methods=['POST'])
 def get_weather():
     try:
-        logging.info(session)
-        #get user_id from session to use on create_playlist
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({"error": "User not authenticated"}), 401
-
-        auth_header = request.headers.get('Authorization')
-        if auth_header:
-            access_token = auth_header.split(' ')[1]
-        else:
-            return jsonify({"error": "No access token provided"}), 401
 
         city = request.json.get('city')
         if not city or not isinstance(city, str):
@@ -68,8 +60,7 @@ def get_weather():
 
         temperature = openweather_data['main']['temp']
 
-        headers = {'Authorization': f'Bearer {access_token}'}
-        search_response = requests.get(f"http://127.0.0.1:5000/search?country={country}", headers=headers)
+        search_response = requests.get(f"http://127.0.0.1:5000/search?country={country}")
         if search_response.status_code != 200:
             return jsonify({"error": "Failed to fetch Spotify data"}), search_response.status_code
 
@@ -79,7 +70,7 @@ def get_weather():
         playlist = filter_songs_by_weather(openweather_data, song_qualities)
 
         # Create a new Spotify playlist
-        playlist_info = create_playlist(user_id, playlist_name)
+        playlist_info = create_playlist(playlist_name)
         playlist_id = playlist_info['playlist_id']
 
 
@@ -89,6 +80,7 @@ def get_weather():
         playlist_id = add_tracks_info['playlist_id']
 
         return jsonify({'temperature': temperature, 'playlist': playlist_id})
+
     except Exception as e:
         logging.error(f"Internal server error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
