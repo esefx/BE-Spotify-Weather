@@ -73,7 +73,8 @@ def get_weather():
 
         location_data = get_location_data(city)
         weather_data = get_weather_data(location_data[0]['lat'], location_data[0]['lon'])
-        playlist_name = f"{city} {weather_data['weather'][0]['description']}"
+        weather_description = weather_data['weather'][0]['description']
+        playlist_name = f"{city} {weather_description}"
 
        
         spotify_song_data = get_spotify_data(location_data[0]['display_name'].split(',')[-1].strip(), access_token)

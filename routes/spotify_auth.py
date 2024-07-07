@@ -140,7 +140,7 @@ def update_access_token_in_db(user_id, new_access_token, new_expires_at):
         pass
 
 #refresh token if our session expired
-@spotify_auth_routes.route('/refresh-token', methods=['GET'])
+@spotify_auth_routes.route('/refresh_token', methods=['GET'])
 def refresh_token():
     access_token = get_access_token()
 
