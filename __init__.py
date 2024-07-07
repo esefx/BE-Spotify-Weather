@@ -25,6 +25,7 @@ def create_app(test_config=None):
             "SQLALCHEMY_TEST_DATABASE_URI")
         
     from models.user import User
+    from models.temp import TemporaryStorage
     db.init_app(app)
     migrate.init_app(app, db)
 
