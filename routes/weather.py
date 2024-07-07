@@ -2,8 +2,8 @@ from flask import Blueprint, request, jsonify
 import requests
 import os
 import logging
-from routes.spotify import create_playlist, add_tracks_to_playlist
-from routes.spotify_auth import get_user_from_token
+from app.routes.spotify import create_playlist, add_tracks_to_playlist
+from app.routes.spotify_auth import get_user_from_token
 from flask_cors import cross_origin
 
 weather_routes = Blueprint('weather_routes', __name__)
@@ -14,16 +14,21 @@ def filter_songs_by_weather(song_qualities, weather_condition, temperature):
     temperature = float(temperature)
 
     if temperature > 30:
-        return [song for song in song_qualities if song['energy'] > 0.7 and song['valence'] > 0.7]
+        filtered_songs = [song for song in song_qualities if song['energy'] > 0.7 and song['valence'] > 0.7]
     elif temperature < 10:
-        return [song for song in song_qualities if song['energy'] < 0.3 and song['valence'] < 0.3]
+        filtered_songs = [song for song in song_qualities if song['energy'] < 0.3 and song['valence'] < 0.3]
     elif weather_condition in ['Rain', 'Snow']:
-        return [song for song in song_qualities if song['acousticness'] > 0.5]
+        filtered_songs = [song for song in song_qualities if song['acousticness'] > 0.5]
     elif weather_condition == 'Clear':
-        return [song for song in song_qualities if song['danceability'] > 0.7]
+        filtered_songs = [song for song in song_qualities if song['danceability'] > 0.7]
     else:
-        return [song for song in song_qualities if 0.3 <= song['energy'] <= 0.7 and 0.3 <= song['valence'] <= 0.7]
+        filtered_songs = [song for song in song_qualities if 0.3 <= song['energy'] <= 0.7 and 0.3 <= song['valence'] <= 0.7]
 
+    if len(filtered_songs) < 10:
+        return song_qualities[:10]  
+    else:
+        return filtered_songs 
+    
 def get_api_key(api_name):
     return os.getenv(f'{api_name}_API_KEY')
 
@@ -73,8 +78,7 @@ def get_weather():
 
         location_data = get_location_data(city)
         weather_data = get_weather_data(location_data[0]['lat'], location_data[0]['lon'])
-        weather_description = weather_data['weather'][0]['description']
-        playlist_name = f"{city} {weather_description}"
+        playlist_name = f"{city} {weather_data['weather'][0]['description'].title()}"
 
        
         spotify_song_data = get_spotify_data(location_data[0]['display_name'].split(',')[-1].strip(), access_token)
