@@ -1,7 +1,7 @@
 blinker==1.8.2
 certifi==2024.2.2
 charset-normalizer==2.0.12
-cliapp==1.20180812.1
+cliapp
 click==8.1.7
 cmdtest==0.32+git
 command-not-found==0.3
