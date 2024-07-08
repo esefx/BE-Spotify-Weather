@@ -82,6 +82,7 @@ def callback():
     if not temp_storage:
         return jsonify({"error": "Session not found"}), 400
     code_verifier = temp_storage.value
+    print("code_verifier: ", code_verifier)
 
     token_info = exchange_code_for_access_token(code, code_verifier)
     if 'access_token' not in token_info:
@@ -99,6 +100,7 @@ def callback():
     return prepare_response(access_token)
 
 def exchange_code_for_access_token(code, code_verifier):
+    print("inside exchange_code_for_access_token")
     req_body = {
         'grant_type': 'authorization_code',
         'code': code,
