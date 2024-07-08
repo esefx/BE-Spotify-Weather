@@ -14,10 +14,10 @@ def create_app(test_config=None):
     CORS(app, supports_credentials=True, origins='http://localhost:3000')
     if not test_config:
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-            "SQLALCHEMY_DATABASE_URI")
         # app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-        #     "RENDER_DATABASE_URI")
+        #     "SQLALCHEMY_DATABASE_URI")
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+             "RENDER_DATABASE_URI")
     else:
         app.config["TESTING"] = True
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
