@@ -104,7 +104,7 @@ def exchange_code_for_access_token(code, code_verifier):
     req_body = {
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': SPOTIFY_REDIRECT_URI,
+        'redirect_uri': 'https://be-spotify-weather.onrender.com/callback',
         'client_id': SPOTIFY_CLIENT_ID,
         'code_verifier': code_verifier
     }
