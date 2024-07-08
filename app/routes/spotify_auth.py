@@ -31,7 +31,7 @@ def generate_unique_session_id():
     return base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
 
 @spotify_auth_routes.route('/login', methods=['GET'])
-@cross_origin(supports_credentials=True, origins='http://localhost:3000')
+@cross_origin(supports_credentials=True, origins='https://be-spotify-weather.onrender.com/')
 def login():
     code_verifier, code_challenge = generate_code_verifier_and_challenge()
     params = {
@@ -69,7 +69,7 @@ def close_popup():
               </body></html>'''
 
 @spotify_auth_routes.route('/callback', methods=['GET'])
-@cross_origin(supports_credentials=True, origins='http://localhost:3000')
+@cross_origin(supports_credentials=True, origins='https://be-spotify-weather.onrender.com/')
 def callback():
     code = request.args.get('code')
     if not code:
