@@ -29,13 +29,13 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from routes.spotify_auth import spotify_auth_routes
+    from app.routes.spotify_auth import spotify_auth_routes
     app.register_blueprint(spotify_auth_routes)
 
-    from routes.spotify import spotify_routes
+    from app.routes.spotify import spotify_routes
     app.register_blueprint(spotify_routes)
 
-    from routes.weather import weather_routes
+    from app.routes.weather import weather_routes
     app.register_blueprint(weather_routes)
 
     return app
