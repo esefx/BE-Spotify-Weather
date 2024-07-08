@@ -112,6 +112,7 @@ def exchange_code_for_access_token(code, code_verifier):
         'Content-Type': 'application/x-www-form-urlencoded'
     }
     response = requests.post(TOKEN_URL, data=urlencode(req_body), headers=headers)
+    print(response.json())
     return response.json()
 
 def fetch_user_id(access_token):
