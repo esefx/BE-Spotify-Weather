@@ -11,7 +11,7 @@ load_dotenv()
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    CORS(app, supports_credentials=True, origins='http://localhost:3000')
+    CORS(app, supports_credentials=True, origins='https://weather-beats-g9lp.onrender.com/')
     if not test_config:
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         # app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
