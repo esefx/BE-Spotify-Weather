@@ -68,12 +68,16 @@ def create_and_populate_playlist(playlist_name, songs,  access_token):
 @weather_routes.route('/weather', methods=['POST'])
 @cross_origin(supports_credentials=True, origins='*')  
 def get_weather():
+    print("inside get_weather")
     try:
         city = request.json.get('city')
+        print("city", city)
         if not city:
             return jsonify({'error': 'Invalid or missing city parameter'}), 400
         access_token = request.headers.get('Authorization').split(' ')[1]
+        print("access_token", access_token)
         user = get_user_from_token(access_token)
+        print("user", user)
         if not user:
             return jsonify({'error': 'Access token not found'}), 400
 

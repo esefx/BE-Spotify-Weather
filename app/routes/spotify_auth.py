@@ -139,7 +139,9 @@ def update_or_create_user(user_id, token_info):
     return user
 
 def prepare_response(access_token):
-    response = make_response(jsonify({"message": "Authentication successful"}))
+    print("inside prepare_response")
+    print("access_token: ", access_token)
+    response = make_response(jsonify({"message": "Authentication successful", "access_token": access_token}))
     response.set_cookie('accessToken', value=access_token, secure=False, httponly=False, samesite='Lax')  
     return response
 
