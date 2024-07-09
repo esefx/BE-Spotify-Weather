@@ -7,6 +7,7 @@ from app.routes.spotify_auth import get_user_from_token
 from flask_cors import cross_origin
 
 weather_routes = Blueprint('weather_routes', __name__)
+@cross_origin(supports_credentials=True, origins='*')
 
 def filter_songs_by_weather(song_qualities, weather_condition, temperature):
     print("Inside filter_songs_by_weather")
