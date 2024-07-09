@@ -139,7 +139,7 @@ def update_or_create_user(user_id, token_info):
     return user
 
 def prepare_response(access_token):
-    response = make_response(redirect(url_for('spotify_auth_routes.close_popup')))
+    response = make_response(jsonify({"message": "Authentication successful"}))
     response.set_cookie('accessToken', value=access_token, secure=False, httponly=False, samesite='Lax')  
     return response
 
