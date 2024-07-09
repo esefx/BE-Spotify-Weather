@@ -76,7 +76,7 @@ def callback():
         return jsonify({"error": "Authorization code not provided"}), 400
 
     session_id = request.cookies.get('session_id')
-    print(session_id)
+    print("session_id", session_id)
       # Assuming session_id is stored in cookies
     temp_storage = TemporaryStorage.query.filter_by(key=session_id).first()
     if not temp_storage:
