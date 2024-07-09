@@ -54,7 +54,7 @@ def login():
     db.session.commit()
     
     response = make_response(jsonify({'auth_url': auth_url, 'session_id': session_id}))
-    response.set_cookie('session_id', value=session_id, secure=False, httponly=False, samesite='Lax')
+    # response.set_cookie('session_id', value=session_id, secure=False, httponly=False, samesite='Lax')
     
     
     return response
@@ -75,7 +75,7 @@ def callback():
     if not code:
         return jsonify({"error": "Authorization code not provided"}), 400
 
-    session_id = request.cookies.get('session_id')
+    session_id = request.args.get('session_id')
     print("session_id", session_id)
       # Assuming session_id is stored in cookies
     temp_storage = TemporaryStorage.query.filter_by(key=session_id).first()
