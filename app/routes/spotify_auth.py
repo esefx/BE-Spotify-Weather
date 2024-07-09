@@ -37,7 +37,7 @@ def login():
     params = {
         'client_id': SPOTIFY_CLIENT_ID,
         'response_type': 'code',
-        'redirect_uri': 'https://be-spotify-weather.onrender.com/callback',
+        'redirect_uri': SPOTIFY_REDIRECT_URI,
         'scope': SPOTIFY_SCOPES,
         'code_challenge_method': 'S256',
         'code_challenge': code_challenge,
@@ -104,7 +104,7 @@ def exchange_code_for_access_token(code, code_verifier):
     req_body = {
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': 'https://be-spotify-weather.onrender.com/callback',
+        'redirect_uri': SPOTIFY_REDIRECT_URI,
         'client_id': SPOTIFY_CLIENT_ID,
         'code_verifier': code_verifier
     }
