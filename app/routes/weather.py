@@ -66,7 +66,7 @@ def create_and_populate_playlist(playlist_name, songs,  access_token):
     return playlist_id
 
 @weather_routes.route('/weather', methods=['POST'])
-@cross_origin(supports_credentials=True, origins='http://localhost:3000')  
+@cross_origin(supports_credentials=True, origins='*')  
 def get_weather():
     try:
         city = request.json.get('city')
