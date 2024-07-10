@@ -75,7 +75,7 @@ def get_audio_features(track_ids, access_token):
         data = response.json()
         if 'audio_features' not in data:
             return jsonify({"error": "Failed to extract audio features from Spotify response"})
-        logging.info(f'audio features: {data['audio_features'][0]}')
+        print(f'audio features: {data['audio_features'][0]}')
 
         return jsonify(data['audio_features']) 
     
