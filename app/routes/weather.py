@@ -60,7 +60,7 @@ def get_spotify_data(country, access_token):
 
 def create_and_populate_playlist(playlist_name, track_uris,  access_token):
     print("inside create_and_populate_playlist")
-    print(songs)
+    print(track_uris)
     playlist_info = create_playlist(access_token, playlist_name)
     playlist_id = playlist_info['playlist_id']
     add_tracks_to_playlist(playlist_id, track_uris, access_token)
