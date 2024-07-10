@@ -75,7 +75,6 @@ def get_audio_features(track_ids, access_token):
         data = response.json()
         if 'audio_features' not in data:
             return jsonify({"error": "Failed to extract audio features from Spotify response"})
-
         return jsonify(data['audio_features']) 
     
     # Create a new Spotify playlist
@@ -97,7 +96,7 @@ def create_playlist(access_token, playlist_name):
         return jsonify({"error": "Failed to create playlist"}), response.status_code
 
     playlist_id = response.json()['id']
-    print("playlist_id", playlist_id)
+    print("in spotify.py /create playlist--playlist_id", playlist_id)
     return {'playlist_id': playlist_id, 'playlist_name': playlist_name}
 
 # Add tracks to a Spotify playlist
@@ -105,6 +104,8 @@ def create_playlist(access_token, playlist_name):
 @cross_origin(supports_credentials=True, origins='*')
 def add_tracks_to_playlist(playlist_id, track_uris, access_token):
     print("inside add_tracks_to_playlist")
+    print("track_uris", track_uris)
+    print("playlist_id inside add tracks", playlist_id)
     response = requests.post(
         f"{API_BASE_URL}playlists/{playlist_id}/tracks",
         headers={'Authorization': f'Bearer {access_token}'},

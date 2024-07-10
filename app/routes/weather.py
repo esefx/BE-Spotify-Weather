@@ -24,7 +24,7 @@ def filter_songs_by_weather(song_qualities, weather_condition, temperature):
         filtered_songs = [song for song in song_qualities if song['danceability'] > 0.7]
     else:
         filtered_songs = [song for song in song_qualities if 0.3 <= song['energy'] <= 0.7 and 0.3 <= song['valence'] <= 0.7]
-
+    print("filtered_songs", filtered_songs)
     if len(filtered_songs) < 10:
         return song_qualities[:10]  
     else:
@@ -59,6 +59,7 @@ def get_spotify_data(country, access_token):
 
 def create_and_populate_playlist(playlist_name, songs,  access_token):
     print("inside create_and_populate_playlist")
+    print(songs)
     playlist_info = create_playlist(access_token, playlist_name)
     playlist_id = playlist_info['playlist_id']
     track_uris = [song['uri'] for song in songs]
