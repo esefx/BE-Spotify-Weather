@@ -6,7 +6,7 @@ import urllib.parse
 import datetime
 import requests
 from app.routes.spotify_auth import get_user_from_token
-
+from flask_cors import cross_origin
 
 logging.basicConfig(level=logging.INFO)
 
@@ -21,6 +21,7 @@ spotify_routes = Blueprint('spotify_routes', __name__)
 
 #search for the top 50 playlist and return the song qualities of that list. 
 @spotify_routes.route('/search', methods=['GET'])
+@cross_origin(supports_credentials=True, origins='*')
 def get_top_50_playlist():
     access_token = request.headers.get('Authorization').split(' ')[1]
     user = get_user_from_token(access_token)
@@ -51,19 +52,19 @@ def get_top_50_playlist():
 def get_playlist_tracks(playlist_id, access_token):
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(f"{API_BASE_URL}playlists/{playlist_id}/tracks", headers=headers)
-        logging.info(f'Spotify response: {response.status_code}, {response.text}')
+        logging.info(f'Inside Get Playlist Tracks, Spotify response: {response.status_code}')
 
         if response.status_code != 200:
             return jsonify({"error": "Failed to fetch tracks from Spotify"}), response.status_code
 
         data = response.json()
         track_ids = [item['track']['id'] for item in data['items']]
-        logging.info(f'Track IDs: {track_ids}')
 
         return get_audio_features(track_ids, access_token)
 
 
 def get_audio_features(track_ids, access_token):
+        logging.info("inside get_audio_features")
         headers = {'Authorization': f'Bearer {access_token}'}
         params = {'ids': ','.join(track_ids)}
         response = requests.get(f"{API_BASE_URL}audio-features", headers=headers, params=params)
@@ -74,8 +75,9 @@ def get_audio_features(track_ids, access_token):
         data = response.json()
         if 'audio_features' not in data:
             return jsonify({"error": "Failed to extract audio features from Spotify response"})
+        logging.info(f'audio features: {data['audio_features'][0]}')
 
-        return jsonify(data['audio_features'])
+        return jsonify(data['audio_features']) 
     
     # Create a new Spotify playlist
 @spotify_routes.route('/create-playlist', methods=['POST'])
