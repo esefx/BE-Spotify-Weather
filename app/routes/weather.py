@@ -25,10 +25,11 @@ def filter_songs_by_weather(song_qualities, weather_condition, temperature):
     else:
         filtered_songs = [song for song in song_qualities if 0.3 <= song['energy'] <= 0.7 and 0.3 <= song['valence'] <= 0.7]
     print("filtered_songs", filtered_songs)
-    if len(filtered_songs) < 10:
-        return song_qualities[:10]  
-    else:
-        return filtered_songs 
+
+    songs_to_use = filtered_songs if len(filtered_songs) >= 10 else song_qualities[:10]
+    
+    track_uris = [song['uri'] for song in songs_to_use]  
+    return track_uris
     
 def get_api_key(api_name):
     return os.getenv(f'{api_name}_API_KEY')
@@ -57,12 +58,11 @@ def get_spotify_data(country, access_token):
         raise Exception("Failed to fetch Spotify data")
     return response.json()
 
-def create_and_populate_playlist(playlist_name, songs,  access_token):
+def create_and_populate_playlist(playlist_name, track_uris,  access_token):
     print("inside create_and_populate_playlist")
     print(songs)
     playlist_info = create_playlist(access_token, playlist_name)
     playlist_id = playlist_info['playlist_id']
-    track_uris = [song['uri'] for song in songs]
     add_tracks_to_playlist(playlist_id, track_uris, access_token)
     return playlist_id
 
