@@ -90,8 +90,7 @@ def get_weather():
         spotify_song_data = get_spotify_data(location_data[0]['display_name'].split(',')[-1].strip(), access_token)
         temperature = weather_data['main']['temp']
         weather_condition = weather_data['weather'][0]['main']
-        track_uris_response = filter_songs_by_weather(spotify_song_data, weather_condition, temperature)
-        track_uris = track_uris_response.json()
+        track_uris = filter_songs_by_weather(spotify_song_data, weather_condition, temperature)
         print("track_uris saved from filter songs by weather before passed to create and populate playlist", track_uris)
 
         playlist_id = create_and_populate_playlist(playlist_name, track_uris, access_token)
