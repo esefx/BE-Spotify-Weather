@@ -24,11 +24,11 @@ def filter_songs_by_weather(song_qualities, weather_condition, temperature):
         filtered_songs = [song for song in song_qualities if song['danceability'] > 0.7]
     else:
         filtered_songs = [song for song in song_qualities if 0.3 <= song['energy'] <= 0.7 and 0.3 <= song['valence'] <= 0.7]
-    print("filtered_songs", filtered_songs)
 
     songs_to_use = filtered_songs if len(filtered_songs) >= 10 else song_qualities[:10]
     
-    track_uris = [song['uri'] for song in songs_to_use]  
+    track_uris = [song['uri'] for song in songs_to_use]
+    print("track_uris", track_uris)  
     return track_uris
     
 def get_api_key(api_name):
