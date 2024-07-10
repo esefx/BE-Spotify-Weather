@@ -51,7 +51,7 @@ def get_weather_data(lat, lon):
 def get_spotify_data(country, access_token):
     params = {'country': country}
     headers = {'Authorization': f'Bearer {access_token}'}
-    url = "http://127.0.0.1:5000/search"
+    url = "https://be-spotify-weather.onrender.com/search"
     response = requests.get(url, params=params, headers=headers)
     if response.status_code != 200:
         raise Exception("Failed to fetch Spotify data")
