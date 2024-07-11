@@ -62,6 +62,8 @@ def create_and_populate_playlist(playlist_name, track_uris,  access_token):
     print("track_uris", track_uris)
     playlist_info = create_playlist(access_token, playlist_name)
     playlist_id = playlist_info['playlist_id']
+    print("inside create and populate, playlist_id: ", playlist_id)
+    print('back to popoulate playlist: track uris:', track_uris)
     add_tracks_to_playlist(playlist_id, track_uris, access_token)
     return playlist_id
 
