@@ -79,7 +79,6 @@ def get_audio_features(track_ids, access_token):
     
     # Create a new Spotify playlist
 @spotify_routes.route('/create-playlist', methods=['POST'])
-@cross_origin(supports_credentials=True, origins='*')
 def create_playlist(access_token, playlist_name):
     print("inside create_playlist")
     user = get_user_from_token(access_token)
@@ -101,7 +100,6 @@ def create_playlist(access_token, playlist_name):
 
 # Add tracks to a Spotify playlist
 @spotify_routes.route('/add-tracks', methods=['POST'])
-@cross_origin(supports_credentials=True, origins='*')
 def add_tracks_to_playlist(playlist_id, track_uris, access_token):
     print("inside add_tracks_to_playlist")
     print("track_uris", track_uris)
